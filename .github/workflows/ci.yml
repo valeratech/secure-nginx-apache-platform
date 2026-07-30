@@ -14,7 +14,7 @@ jobs:
     name: gitleaks (full history)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0   # full history — a local hook can be bypassed, this cannot
       - name: install gitleaks
@@ -29,7 +29,7 @@ jobs:
     name: sensitive-content audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: negative control
         run: ./scripts/negative-control.sh
       - name: audit working tree
@@ -39,7 +39,7 @@ jobs:
     name: content integrity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: lab entry structure
         run: ./scripts/lint-labs.sh
       - name: shellcheck
