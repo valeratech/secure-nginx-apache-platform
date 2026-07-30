@@ -1,0 +1,77 @@
+# gitleaks configuration — secret SHAPES backstop.
+#
+# This runs UNDER scripts/audit-sanitize.sh, which handles project-specific identifiers
+# (employer domains, production addressing, license keys, internal paths). The two
+# deliberately overlap; they fail differently.
+
+[extend]
+useDefault = true
+
+# ----------------------------------------------------------------------------------------
+# Custom rules for the shapes this project's domain emits
+# ----------------------------------------------------------------------------------------
+
+[[rules]]
+id = "lab-ca-private-key"
+description = "PEM private key — lab CA or leaf key material must never leave the VM"
+regex = '''-----BEGIN (RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----'''  # audit-ok — detection pattern, not key material
+keywords = ["BEGIN", "PRIVATE KEY"]
+
+[[rules]]
+id = "hosting-panel-license"
+description = "Hosting control panel or CloudLinux license identifier"
+regex = '''\b(PLSK|CLN|CLOUDLINUX)[._-][A-Z0-9]{6,}\b'''
+keywords = ["PLSK", "CLN", "CLOUDLINUX"]
+
+[[rules]]
+id = "php-app-db-credential"
+description = "Database credential in application configuration (wp-config.php style)"
+regex = '''define\s*\(\s*['"]DB_(PASSWORD|USER)['"]\s*,\s*['"][^'"]{4,}['"]'''
+keywords = ["DB_PASSWORD", "DB_USER"]
+
+[[rules]]
+id = "db-connection-string"
+description = "Database connection string with inline credentials"
+regex = '''(mysql|mariadb|postgres(ql)?)://[^:\s]+:[^@\s]+@'''
+keywords = ["mysql://", "postgres://", "postgresql://", "mariadb://"]
+
+[[rules]]
+id = "htpasswd-hash"
+description = "htpasswd entry — bcrypt/APR1/SHA hash from Apache basic auth"
+regex = '''^[a-zA-Z0-9._-]+:\$(2[aby]|apr1|1|5|6)\$[./A-Za-z0-9$]{16,}'''
+keywords = ["$apr1$", "$2y$", "$2a$", "$2b$"]
+
+[[rules]]
+id = "linux-shadow-entry"
+description = "Shadow file hash pasted from a lab or production host"
+regex = '''^[a-z_][a-z0-9_-]{0,31}:\$[1256y]\$[^\s:]{16,}:'''
+keywords = ["$6$", "$5$", "$y$"]
+
+# ----------------------------------------------------------------------------------------
+# Allowlist — deliberate, documented exceptions only
+# ----------------------------------------------------------------------------------------
+[allowlist]
+description = "Lab placeholders, generated evidence paths, and documentation examples"
+
+paths = [
+  '''evidence-working/''',        # gitignored anyway; belt and braces
+  '''\.gitleaks\.toml$''',        # this file describes the patterns it matches
+  '''scripts/audit-sanitize\.sh$''',
+]
+
+regexes = [
+  '''changeme''',
+  '''placeholder''',
+  '''REDACTED''',
+  '''<your-[a-z-]+>''',
+  '''example\.(com|org|net)''',
+  '''site-[ab]\.lab''',
+  # Public certificates are safe to commit; only private key blocks are not.
+  '''-----BEGIN CERTIFICATE-----''',
+]
+
+stopwords = [
+  "lorem",
+  "ipsum",
+  "sample",
+]

@@ -1,0 +1,52 @@
+name: gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: gitleaks (full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history — a local hook can be bypassed, this cannot
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_CONFIG: .gitleaks.toml
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+
+  sanitize:
+    name: sensitive-content audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: negative control
+        run: ./scripts/negative-control.sh
+      - name: audit working tree
+        run: ./scripts/audit-sanitize.sh --all
+
+  integrity:
+    name: content integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: lab entry structure
+        run: ./scripts/lint-labs.sh
+      - name: shellcheck
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          shellcheck -e SC2013 -e SC2016 scripts/*.sh
+      - name: no images committed
+        run: |
+          found=$(git ls-files '*.png' '*.jpg' '*.jpeg' '*.gif' '*.webp' | grep -vxFf .audit-allow || true)
+          if [ -n "$found" ]; then
+            echo "images committed without allowlist entry:"; echo "$found"; exit 1
+          fi

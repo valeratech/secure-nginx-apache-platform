@@ -1,0 +1,24 @@
+# Raw, unsanitized lab evidence — never committed
+evidence-working/
+
+# Employer/customer/production strings used by the audit — never committed
+.audit-denylist
+
+# Config pulled off the lab VM, pre-review
+.sync-staging/
+
+# CA state and private key material — generated in the lab, never published
+ca/
+*.key
+*-key.pem
+*.p12
+*.pfx
+
+# script(1) timing files
+timing.log
+*.timing
+
+# Editor / OS noise
+.DS_Store
+*.swp
+*~

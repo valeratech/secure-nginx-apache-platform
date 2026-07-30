@@ -1,0 +1,66 @@
+# Local commit gate. A failing hook BLOCKS the commit — that is the point.
+# Install once:  pre-commit install
+# Run manually:  pre-commit run --all-files
+#
+# This is the third of four sanitization layers (source discipline → audit → hooks → CI).
+# It is bypassable with --no-verify, which is why CI re-runs everything server-side over
+# the full history.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: [--maxkb=512]
+      - id: check-yaml
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+        args: [--config, .gitleaks.toml]
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        args: [-e, SC2013, -e, SC2016]   # intentional: deliberate word-splitting, literal grep patterns
+
+  - repo: local
+    hooks:
+      # Project-specific sensitive-content audit. Catches what gitleaks cannot:
+      # employer identifiers, production addressing, unapproved domains, license keys.
+      - id: audit-sanitize
+        name: sensitive-content audit
+        entry: scripts/audit-sanitize.sh
+        language: script
+        pass_filenames: true
+        types: [text]
+
+      # Lab entry structure and status-table consistency.
+      - id: lint-labs
+        name: lab entry integrity
+        entry: scripts/lint-labs.sh
+        language: script
+        pass_filenames: false
+        files: ^lab/
+
+      # Images carry EXIF, embedded identifiers, and visible secrets. Blocked by default.
+      # To allow one deliberately, strip metadata first and add it to .audit-allow.
+      - id: block-images
+        name: block committed images
+        entry: >-
+          bash -c 'for f in "$@"; do
+            grep -qxF "$f" .audit-allow 2>/dev/null && continue;
+            echo "blocked image: $f — strip metadata (exiftool -all=) and allowlist it"; exit 1;
+          done' --
+        language: system
+        files: \.(png|jpe?g|gif|webp|bmp|tiff?)$

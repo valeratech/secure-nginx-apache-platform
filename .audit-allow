@@ -1,0 +1,11 @@
+# Deliberate, documented approvals for scripts/audit-sanitize.sh.
+# One entry per line. Every entry needs a reason on the line above it.
+#
+# Format: the exact string that would otherwise be flagged.
+# Inline alternative: put "audit-ok" in a source line to exempt that single line.
+
+# Upstream documentation hosts cited in reference/ annotations are already
+# allowlisted by pattern in the script itself; add anything else here.
+
+# Public DNS used only as an example of an off-lab address in ENVIRONMENT.md
+8.8.8.8

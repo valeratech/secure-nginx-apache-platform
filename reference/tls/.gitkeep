@@ -1,0 +1,2 @@
+# tls configuration lands here as each stage completes.
+# Every non-obvious directive carries: what it mitigates, and how that was verified.
